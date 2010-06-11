@@ -1,18 +1,18 @@
 from BTrees.OOBTree import OOBTree
 from zope.container.interfaces import IContainer
 from zope.interface import implements
-#import OFS.SimpleItem
 import persistent.list
-import persistent.persistent
+import persistent.Persistent
 
 
-class PersistentLRUFolder(persistent.persistent):
+class PersistentLRUFolder(persitent.Persistent):
     implements(IContainer)
 
     _max_items = 1000
     _tolerance = 0.1 # 10%
 
     def __init__(self, max_items):
+        super(PersistentLRUFolder, self).__init__()
         self._storage = OOBTree()
         self._index = persistent.list()
         self.set_max_items(max_items)
@@ -21,7 +21,7 @@ class PersistentLRUFolder(persistent.persistent):
         self._max_items = val
 
     def set_tolerance(self, val):
-        self._tolerance = val
+        self._tolerance = float(val)
 
     def __len__(self):
         return len(self._index)
