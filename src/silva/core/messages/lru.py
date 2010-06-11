@@ -2,10 +2,10 @@ from BTrees.OOBTree import OOBTree
 from zope.container.interfaces import IContainer
 from zope.interface import implements
 import persistent.list
-import persistent.Persistent
+from persistent import Persistent
 
 
-class PersistentLRUFolder(persitent.Persistent):
+class PersistentLRUFolder(Persistent):
     implements(IContainer)
 
     _max_items = 1000
@@ -38,7 +38,7 @@ class PersistentLRUFolder(persitent.Persistent):
     def __setitem__(self, key, value):
         self._storage[key] = value
         self._index.append(key)
-        ratio = len(self.index) - self._max_items) / self._max_items
+        ratio = (len(self.index) - self._max_items) / self._max_items
         if ratio > self._tolerance:
             self.truncate()
 
