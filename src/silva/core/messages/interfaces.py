@@ -9,6 +9,6 @@ class IMessageService(Interface):
         """
 
     def receive(request, type=u"message"):
-        """ receive message
+        """ receive message, return a list of tuples (type, message)
         """
 
