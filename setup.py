@@ -26,7 +26,5 @@ setup(name='silva.core.messages',
       zip_safe=False,
       install_requires=[
           'setuptools',
-          'zope.container',
-          'z3c.flashmessage',
           ],
       )
