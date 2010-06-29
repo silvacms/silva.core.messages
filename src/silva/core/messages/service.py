@@ -8,12 +8,12 @@ import uuid
 _marker = object()
 
 
-# class ClientId(grok.Adapter):
-#     grok.context(zope.publisher.interfaces.browser.IBrowserRequest)
-#     grok.provides(IClientId)
+class ClientId(grok.Adapter):
+    grok.context(zope.publisher.interfaces.browser.IBrowserRequest)
+    grok.provides(IClientId)
 
-#     def __str__(self):
-#         return str(self.context.SESSION.id)
+    def __str__(self):
+        return str(self.context.SESSION.id)
 
 
 class Message(object):
