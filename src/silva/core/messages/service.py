@@ -1,10 +1,19 @@
 from five import grok
 from threading import Lock
 from silva.core.messages.interfaces import IMessageService
+import zope.publisher.interfaces.browser
+from zope.session.interfaces import IClientId
 import uuid
 
-
 _marker = object()
+
+
+class ClientId(grok.Adapter):
+    grok.context(zope.publisher.interfaces.browser.IBrowserRequest)
+    grok.provides(IClientId)
+
+    def __str__(self):
+        return str(self.context.SESSION.id)
 
 
 class Message(object):
@@ -100,7 +109,7 @@ class MemoryMessageService(object):
         self._message_bucket = FixedSizeBucket(1000)
 
     def send(self, message, request, namespace=u""):
-        session_id = request.SESSION.id
+        session_id = str(IClientId(request))
         if session_id in self._session_bucket:
             store = self._session_bucket[session_id]
         else:
@@ -118,7 +127,7 @@ class MemoryMessageService(object):
 
     def receive(self, request, namespace=u''):
         messages = []
-        session_id = request.SESSION.id
+        session_id = str(IClientId(request))
         session_store = self._session_bucket.get(session_id)
         if not session_store:
             return messages
@@ -132,7 +141,7 @@ class MemoryMessageService(object):
 
     def receive_all(self, request):
         messages = []
-        session_id = request.SESSION.id
+        session_id = str(IClientId(request))
         session_store = self._session_bucket.get(session_id)
         if not session_store:
             return messages

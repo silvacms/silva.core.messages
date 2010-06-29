@@ -3,11 +3,12 @@ from zope.component import getUtility, provideUtility
 from Products.Silva.testing import SilvaLayer
 from zope.publisher.browser import TestRequest
 from silva.core.messages.service import MemoryMessageService
+from Products.Silva.tests.layer import SilvaFunctionalLayer
 import silva.core.messages
 
 
 def messages_to_string(message_list):
-    return [(type, str(msg),) for (type, msg,) in message_list] 
+    return [(type, str(msg),) for (type, msg,) in message_list]
 
 class Session(object):
 
@@ -17,10 +18,7 @@ class Session(object):
 
 class ServiceTest(unittest.TestCase):
 
-    def setUp(self):
-        provideUtility(
-            silva.core.messages.service.MemoryMessageService(),
-            silva.core.messages.interfaces.IMessageService)
+    layer = SilvaFunctionalLayer
 
     def test_utility(self):
         service = getUtility(silva.core.messages.interfaces.IMessageService)
@@ -33,6 +31,8 @@ class ServiceTest(unittest.TestCase):
 
 
 class ServiceMessagingTest(unittest.TestCase):
+
+    layer = SilvaFunctionalLayer
 
     def setUp(self):
         self.service = silva.core.messages.service.MemoryMessageService()
