@@ -1,0 +1,8 @@
+Changelog
+=========
+
+silva.core.messages 1.0b1 (2010-07-14)
+--------------------------------------
+
+* first release, see README.txt
+

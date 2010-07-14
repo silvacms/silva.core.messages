@@ -25,6 +25,14 @@ setup(name='silva.core.messages',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
-          'setuptools',
-          ],
+        'five.grok',
+        'zope.component',
+        'zope.interface',
+        'zope.publisher',
+        'zope.session',
+        'zope.testing',
+      ],
+      tests_requires=[
+        'Products.Silva',
+      ],
       )
