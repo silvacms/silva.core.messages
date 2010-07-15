@@ -1,7 +1,13 @@
 Changelog
 =========
 
-silva.core.messages 1.0b1 (2010-07-14)
+
+silva.core.messages 2.3 (unreleased)
+------------------------------------
+
+* ...
+
+silva.core.messages 2.3b1 (2010-07-14)
 --------------------------------------
 
 * first release, see README.txt
