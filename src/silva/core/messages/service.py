@@ -5,6 +5,7 @@ import zope.publisher.interfaces.browser
 from zope.session.interfaces import IClientId
 import uuid
 
+
 _marker = object()
 
 

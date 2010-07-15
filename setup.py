@@ -3,6 +3,8 @@ import os
 
 version = '2.3dev'
 
+tests_require = ['Products.Silva',]
+
 setup(name='silva.core.messages',
       version=version,
       description="Message utilities for Silva",
@@ -32,7 +34,6 @@ setup(name='silva.core.messages',
         'zope.session',
         'zope.testing',
       ],
-      tests_requires=[
-        'Products.Silva',
-      ],
+      tests_require=tests_require,
+      extras_require={'test': tests_require},
       )
