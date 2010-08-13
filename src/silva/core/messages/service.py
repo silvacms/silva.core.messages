@@ -1,9 +1,9 @@
 from five import grok
-from threading import Lock
-from silva.core.messages.interfaces import IMessageService
+from silva.core.messages.interfaces import IMessageService, IMessage
+from silva.core.cache.interfaces import ICacheManager
 import zope.publisher.interfaces.browser
 from zope.session.interfaces import IClientId
-import uuid
+from zope.component import getUtility
 
 
 _marker = object()
@@ -17,88 +17,45 @@ class ClientId(grok.Adapter):
         return str(self.context.SESSION.id)
 
 
-class Message(object):
+class Message():
+    grok.implements(IMessage)
 
-    def __init__(self, content):
-        self.uuid = str(uuid.uuid4())
-        self.content = content
+    namespace = None
+
+    def __init__(self, string, namespace='message'):
+        self.content = string
+        self.namespace = namespace
 
     def __str__(self):
         return self.content
 
 
-class FixedSizeBucket(object):
-    """ The bucket keep track of its size and delete some items if it grows
-    too much.
-    """
-    def __init__(self, size, tolerance=0.2):
-        self.tolerance = float(tolerance)
-        self.__size = size
-        self._item_index = list()
-        self._items = {}
-        self.__clear_lock = Lock()
+class Store(object):
+
+    def __init__(self, name):
+        self.ns = 'silva.core.messages.store.%s'
+        cache_manager = getUtility(ICacheManager)
+        self._backend = cache_manager.get_cache(self.ns, 'shared')
+
+    def get(self, key, default=None):
+        return self._backend.get(key)
+
+    def set(self, key, value):
+        return self._backend.put(key, value)
 
     def __getitem__(self, key):
-        return self._items[key]
-
-    def __contains__(self, key):
-        return key in self._item_index
-
-    def get(self, key, default=None, autocleanup=True):
-        if autocleanup:
-            value = self._items.get(key, _marker)
-            if value is _marker:
-                return default
-            if not value:
-                del self[key]
-                return default
-            return value
-        return self._items.get(key, default)
+        val = self._backend.get(key, _marker)
+        if val is _marker:
+            raise KeyError
 
     def __setitem__(self, key, value):
-        self._item_index.append(key)
-        self._items[key] = value
-        self.cleanup()
-        return key
+        self.set(key, value)
 
-    set = __setitem__
+    def __contains__(self, key):
+        return self._backend.has_key(key)
 
     def __delitem__(self, key):
-        if self.__clear_lock.acquire(False):
-            try:
-                del self._items[key]
-                self._item_index.remove(key)
-            finally:
-                self.__clear_lock.release()
-
-    def __recall(self):
-        if self.__clear_lock.acquire(False):
-            try:
-                del_count = len(self) - self.__size
-                if del_count < 1:
-                    return
-                items_to_delete = self._item_index[:del_count]
-                for key in items_to_delete:
-                    del self._items[key]
-                del self._item_index[:del_count]
-            finally:
-                self.__clear_lock.release()
-
-    def exceed_ratio(self):
-        return ((len(self) - self.__size) / float(self.__size))
-
-    def should_cleanup(self):
-        ratio = self.exceed_ratio()
-        if self.tolerance < ratio:
-            return True
-        return False
-
-    def cleanup(self):
-        if self.should_cleanup():
-            self.__recall()
-
-    def __len__(self):
-        return len(self._item_index)
+        self._backend.remove(key)
 
 
 class MemoryMessageService(object):
@@ -106,48 +63,30 @@ class MemoryMessageService(object):
     grok.implements(IMessageService)
 
     def __init__(self):
-        self._session_bucket = FixedSizeBucket(100)
-        self._message_bucket = FixedSizeBucket(1000)
+        self.store = Store('messages')
 
-    def send(self, message, request, namespace=u""):
+    def send(self, message_str, request, namespace=u"message"):
         session_id = str(IClientId(request))
-        if session_id in self._session_bucket:
-            store = self._session_bucket[session_id]
-        else:
-            store = {}
-            self._session_bucket[session_id] = store
-        if namespace in store:
-            message_list = store[namespace]
-        else:
-            message_list = list()
-            store[namespace] = message_list
-        message = Message(message)
-        message_list.append(
-            self._message_bucket.set(message.uuid, message))
-        return message
+        messages = self.store.get(session_id, list())
+        messages.append(Message(message_str, namespace=namespace))
+        self.store.set(session_id, messages)
 
-    def receive(self, request, namespace=u''):
-        messages = []
+    def receive(self, request, namespace=u"message"):
         session_id = str(IClientId(request))
-        session_store = self._session_bucket.get(session_id)
-        if not session_store:
-            return messages
-        message_ids = session_store.get(namespace, list())
-        for id in message_ids:
-            message = self._message_bucket.get(id)
-            if message:
-                del self._message_bucket[id]
-                messages.append(message)
-        return messages
+        messages = self.store.get(session_id, list())
+        keep = list()
+        reception = list()
+        for message in message:
+            if message.namespace != namespace:
+                keep.append(message)
+            else:
+                reception.append(message)
+        self.store.set(session_id, keep)
+        return reception
 
     def receive_all(self, request):
-        messages = []
         session_id = str(IClientId(request))
-        session_store = self._session_bucket.get(session_id)
-        if not session_store:
-            return messages
-        for namespace in session_store:
-            messages += [(namespace, message,)
-                         for message in self.receive(request, namespace)]
+        messages = self.store.get(session_id, list())
+        del self.store[session_id]
         return messages
 
