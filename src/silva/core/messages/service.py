@@ -1,23 +1,13 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2010 Infrae. All rights reserved.
+# See also LICENSE.txt
+
 from five import grok
 from silva.core.messages.interfaces import IMessageService, IMessage
-from silva.core.cache.interfaces import ICacheManager
-import zope.publisher.interfaces.browser
-from zope.session.interfaces import IClientId
-from zope.component import getUtility
+from silva.core.cache.store import ClientStore
 
 
-_marker = object()
-
-
-class ClientId(grok.Adapter):
-    grok.context(zope.publisher.interfaces.browser.IBrowserRequest)
-    grok.provides(IClientId)
-
-    def __str__(self):
-        return str(self.context.SESSION.id)
-
-
-class Message():
+class Message(object):
     grok.implements(IMessage)
 
     namespace = None
@@ -29,64 +19,41 @@ class Message():
     def __str__(self):
         return self.content
 
-
-class Store(object):
-
-    def __init__(self, name):
-        self.ns = 'silva.core.messages.store.%s'
-        cache_manager = getUtility(ICacheManager)
-        self._backend = cache_manager.get_cache(self.ns, 'shared')
-
-    def get(self, key, default=None):
-        return self._backend.get(key)
-
-    def set(self, key, value):
-        return self._backend.put(key, value)
-
-    def __getitem__(self, key):
-        val = self._backend.get(key, _marker)
-        if val is _marker:
-            raise KeyError
-
-    def __setitem__(self, key, value):
-        self.set(key, value)
-
-    def __contains__(self, key):
-        return self._backend.has_key(key)
-
-    def __delitem__(self, key):
-        self._backend.remove(key)
+    def __unicode__(self):
+        return self.content
 
 
-class MemoryMessageService(object):
+STORE_KEY = 'messages'
 
+
+class MessageService(grok.GlobalUtility):
+    grok.provides(IMessageService)
     grok.implements(IMessageService)
 
-    def __init__(self):
-        self.store = Store('messages')
+
+    def __retrieve(self, request):
+        store = ClientStore(request)
+        messages = store.get(STORE_KEY, list())
+        return (store, messages)
 
     def send(self, message_str, request, namespace=u"message"):
-        session_id = str(IClientId(request))
-        messages = self.store.get(session_id, list())
+        store, messages = self.__retrieve(request)
         messages.append(Message(message_str, namespace=namespace))
-        self.store.set(session_id, messages)
+        store.set(STORE_KEY, messages)
 
     def receive(self, request, namespace=u"message"):
-        session_id = str(IClientId(request))
-        messages = self.store.get(session_id, list())
+        store, messages = self.__retrieve(request)
         keep = list()
         reception = list()
-        for message in message:
+        for message in messages:
             if message.namespace != namespace:
                 keep.append(message)
             else:
                 reception.append(message)
-        self.store.set(session_id, keep)
+        store.set(STORE_KEY, keep)
         return reception
 
     def receive_all(self, request):
-        session_id = str(IClientId(request))
-        messages = self.store.get(session_id, list())
-        del self.store[session_id]
+        store, messages = self.__retrieve(request)
+        store.set(STORE_KEY, list())
         return messages
-

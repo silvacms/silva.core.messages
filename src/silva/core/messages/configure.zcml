@@ -3,6 +3,9 @@
    xmlns:zcml="http://namespaces.zope.org/zcml"
    xmlns:grok="http://namespaces.zope.org/grok">
 
+  <include package="silva.core.cache" />
+  <include package="five.grok" />
+
   <grok:grok package="." />
 
 </configure>

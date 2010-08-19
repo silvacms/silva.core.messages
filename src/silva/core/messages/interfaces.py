@@ -8,6 +8,10 @@ class IMessage(Interface):
         """ Render message as text
         """
 
+    def __unicode__():
+        """Render message as unicode
+        """
+
 
 class IMessageService(Interface):
     """ Utility for registering messages it should receive only IMessages
