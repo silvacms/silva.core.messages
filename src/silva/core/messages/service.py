@@ -4,7 +4,7 @@
 
 from five import grok
 from silva.core.messages.interfaces import IMessageService, IMessage
-from silva.core.cache.store import ClientStore
+from silva.core.cache.store import SessionStore
 
 
 class Message(object):
@@ -32,7 +32,7 @@ class MessageService(grok.GlobalUtility):
 
 
     def __retrieve(self, request):
-        store = ClientStore(request)
+        store = SessionStore(request)
         messages = store.get(STORE_KEY, list())
         return (store, messages)
 
