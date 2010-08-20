@@ -1,43 +1,55 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) 2010 Infrae. All rights reserved.
+# See also LICENSE.txt
+
 import unittest
-from zope.component import getUtility, provideUtility
-from Products.Silva.testing import SilvaLayer
+
+from Products.Silva.testing import FunctionalLayer
+from zope.component import getUtility
+from zope.interface.verify import verifyObject
 from zope.publisher.browser import TestRequest
-from silva.core.messages.service import MemoryMessageService
-from Products.Silva.tests.layer import SilvaFunctionalLayer
-import silva.core.messages
+
+from silva.core.messages.interfaces import IMessageService
 
 
-def messages_to_string(message_list):
-    return [(type, str(msg),) for (type, msg,) in message_list]
+def messages_to_string(messages):
+    return [(message.namespace, str(message),) for message in messages]
+
 
 class Session(object):
+    """Mock object for request session.
+    """
 
     def __init__(self, id):
         self.id = id
 
 
-class ServiceTest(unittest.TestCase):
+class UtilityTest(unittest.TestCase):
 
-    layer = SilvaFunctionalLayer
-
-    def test_utility(self):
-        service = getUtility(silva.core.messages.interfaces.IMessageService)
-        request = TestRequest()
-        request.SESSION = Session('asdfas')
-        service.send(u"some unicode message", request)
-        self.assertEquals(
-            [(u'', u"some unicode message",)],
-            messages_to_string(service.receive_all(request)))
-
-
-class ServiceMessagingTest(unittest.TestCase):
-
-    layer = SilvaFunctionalLayer
+    layer = FunctionalLayer
 
     def setUp(self):
-        self.service = silva.core.messages.service.MemoryMessageService()
         self.request = TestRequest()
-        self.request.SESSION = Session('asdf')
+        self.request.SESSION = Session('session-key')
+
+    def test_utility(self):
+        service = getUtility(IMessageService)
+        self.assertTrue(verifyObject(IMessageService, service))
+
+        service.send(u"some unicode message", self.request)
+        self.assertEquals(
+            [(u'message', u"some unicode message",)],
+            messages_to_string(service.receive_all(self.request)))
+
+
+class MessagingTest(unittest.TestCase):
+
+    layer = FunctionalLayer
+
+    def setUp(self):
+        self.request = TestRequest()
+        self.request.SESSION = Session('session-key')
+        self.service = getUtility(IMessageService)
 
     def test_no_messages(self):
         self.assertEquals([], self.service.receive(self.request))
@@ -46,10 +58,10 @@ class ServiceMessagingTest(unittest.TestCase):
         self.service.send(u'message1', self.request)
         self.service.send(u'message2', self.request)
         self.assertEquals(
-            [(u'', u'message1',),
-             (u'', u'message2',)],
+            [(u'message', u'message1',),
+             (u'message', u'message2',)],
             messages_to_string(self.service.receive_all(self.request)))
-        self.assertEquals([], self.service.receive(self.request))
+        self.assertEquals([], self.service.receive_all(self.request))
 
     def test_multiple_messages_of_different_type(self):
         self.service.send(u'message_type1', self.request, namespace=u"type1")
@@ -69,7 +81,6 @@ class ServiceMessagingTest(unittest.TestCase):
             [u'message_type2',], map(str, receive(u'type2')))
         self.assertEquals([], receive(u'type2'))
 
-
     def test_multiple_messages_of_different_type_fetch_all_at_once(self):
         self.service.send(u'message_type1', self.request, namespace=u"type1")
         self.service.send(u'message_type2', self.request, namespace=u"type2")
@@ -77,14 +88,14 @@ class ServiceMessagingTest(unittest.TestCase):
 
         self.assertEquals(
             [(u'type1', u'message_type1',),
-             (u'type1', u'message_type1',),
-             (u'type2', u'message_type2',)],
+             (u'type2', u'message_type2',),
+             (u'type1', u'message_type1',)],
             messages_to_string(self.service.receive_all(self.request)))
-        self.assertEquals([], self.service.receive(self.request))
+        self.assertEquals([], self.service.receive_all(self.request))
 
 
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(ServiceTest))
-    suite.addTest(unittest.makeSuite(ServiceMessagingTest))
+    suite.addTest(unittest.makeSuite(UtilityTest))
+    suite.addTest(unittest.makeSuite(MessagingTest))
     return suite
