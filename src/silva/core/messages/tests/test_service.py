@@ -16,21 +16,12 @@ def messages_to_string(messages):
     return [(message.namespace, str(message),) for message in messages]
 
 
-class Session(object):
-    """Mock object for request session.
-    """
-
-    def __init__(self, id):
-        self.id = id
-
-
 class UtilityTest(unittest.TestCase):
-
+    # XXX I don't think this test needs FunctionalLayer
     layer = FunctionalLayer
 
     def setUp(self):
         self.request = TestRequest()
-        self.request.SESSION = Session('session-key')
 
     def test_utility(self):
         service = getUtility(IMessageService)
@@ -48,7 +39,6 @@ class MessagingTest(unittest.TestCase):
 
     def setUp(self):
         self.request = TestRequest()
-        self.request.SESSION = Session('session-key')
         self.service = getUtility(IMessageService)
 
     def test_no_messages(self):
