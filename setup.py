@@ -1,9 +1,12 @@
 from setuptools import setup, find_packages
 import os
 
-version = '2.3dev'
+version = '2.3'
 
-tests_require = ['Products.Silva',]
+tests_require = [
+    'Products.Silva [test]',
+    'zope.publisher',
+    'zope.component',]
 
 setup(name='silva.core.messages',
       version=version,
@@ -28,11 +31,8 @@ setup(name='silva.core.messages',
       zip_safe=False,
       install_requires=[
         'five.grok',
-        'zope.component',
+        'silva.core.cache',
         'zope.interface',
-        'zope.publisher',
-        'zope.session',
-        'zope.testing',
       ],
       tests_require=tests_require,
       extras_require={'test': tests_require},
