@@ -10,7 +10,7 @@ tests_require = [
 
 setup(name='silva.core.messages',
       version=version,
-      description="Message utilities for Silva",
+      description="User feedback mechanism for Silva CMS",
       long_description=open("README.txt").read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
       classifiers=[
@@ -22,7 +22,7 @@ setup(name='silva.core.messages',
       keywords='silva core messages',
       author='Infrae',
       author_email='info@infrae.com',
-      url='http://infrae.com/products/silva',
+      url='https://github.com/silvacms/silva.core.messages',
       license='BSD',
       package_dir={'': 'src'},
       packages=find_packages('src'),
